@@ -57,7 +57,9 @@ public class InitStands {
     
     public static final RegistryObject<StandEntityAction> EXAMPLE_STAND_THROW_PICKAXE = ACTIONS.register("example_stand_throw_pickaxe", 
             () -> new ExampleStandThrowPickaxe(new StandEntityAction.Builder()
+                    .standPose(ExampleStandThrowPickaxe.PICKAXE_THROW_ANIM)
                     .holdToFire(20, true)
+                    .standRecoveryTicks(20)
                     .standSound(InitSounds.EXAMPLE_STAND_THROW_PICKAXE)
                     .staminaCost(75)
                     .partsRequired(StandPart.ARMS)));
