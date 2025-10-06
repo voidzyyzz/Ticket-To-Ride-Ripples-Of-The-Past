@@ -46,7 +46,7 @@ public class LoveTrainEventHandler {
     private static final double BASE_RADIUS = 0.3;
     private static final double MAX_RADIUS = 27.0;
     private static final double GROWTH_RATE = 0.02;//待会改
-    private static final int BASE_COLUMNS = 6;
+    private static final int BASE_COLUMNS = 5;
     private static final int MAX_COLUMNS = 400;
     private static final int WORLD_TOP = 246;
     private static final int WORLD_BOTTOM = 0;
@@ -71,7 +71,7 @@ public class LoveTrainEventHandler {
     // ========== 排斥系统参数 ==========
     private static final double BASE_REPEL_RADIUS = 3.0;  // 基础排斥半径
     private static final double REPEL_RADIUS_MULTIPLIER = 1.2; // 排斥半径相对于光壁半径的倍数
-    private static final double REPEL_FORCE = 0.5;        // 排斥力度
+    // 排斥力度
     private static final double PUSH_DISTANCE_MULTIPLIER = 1.0;
     private static final double VELOCITY_MULTIPLIER = 0.5;
     // ========== 内圈光带系统参数 ==========
@@ -86,7 +86,6 @@ public class LoveTrainEventHandler {
     private static final int DECORATIVE_WALL_COUNT = 6;
     private static final double WALL_RADIUS_RATIO = 0.6;
     private static final double WALL_HEIGHT_OFFSET = 0.0;
-    private static final double WALL_MAX_HEIGHT_ABOVE_PLAYER = 10.0;
     private static final double WALL_VERTICAL_SPACING = 3;
     private static final float WALL_PARTICLE_CHANCE = 0.4f;
 
@@ -186,7 +185,7 @@ public class LoveTrainEventHandler {
 
         // 计算垂直范围（实体上下10格）
         double minY = center.y - 1;
-        double maxY = center.y +4;
+        double maxY = center.y +1;
 
         for (int i = 0; i < INNER_RING_COLUMNS; i++) {
             double angle = 2 * Math.PI * i / INNER_RING_COLUMNS;
@@ -222,7 +221,7 @@ public class LoveTrainEventHandler {
 
         // 计算垂直范围（实体上下10格）
         double minY = center.y - 1;
-        double maxY = center.y +4;
+        double maxY = center.y +1;
 
         for (int i = 0; i < columns; i += 2) {
             double angle = 2 * Math.PI * i / columns;
@@ -261,7 +260,7 @@ public class LoveTrainEventHandler {
 
         // 计算垂直范围（实体上下10格）
         double minY = center.y - 1;
-        double maxY = center.y +4;
+        double maxY = center.y +1;
 
         for (int i = 0; i < DECORATIVE_WALL_COUNT; i++) {
             double angle = 2 * Math.PI * i / DECORATIVE_WALL_COUNT;
@@ -283,7 +282,7 @@ public class LoveTrainEventHandler {
     private static void spawnLightWalls(ServerWorld world, Vector3d center, double radius) {
         // 计算垂直范围（实体上下10格）
         double minY = center.y - 1;
-        double maxY = center.y +4;
+        double maxY = center.y +1;
 
         for (int i = 0; i < LIGHTWALL_COLUMNS; i++) {
             double angle = 2 * Math.PI * i / LIGHTWALL_COLUMNS;
@@ -307,7 +306,7 @@ public class LoveTrainEventHandler {
 
         // 计算垂直范围（实体上下10格）
         double minY = center.y - 1;
-        double maxY = center.y +4;
+        double maxY = center.y +1;
 
         for (int i = 0; i < DECORATIVE_RING_COUNT; i++) {
             double angle = 2 * Math.PI * i / DECORATIVE_RING_COUNT;
