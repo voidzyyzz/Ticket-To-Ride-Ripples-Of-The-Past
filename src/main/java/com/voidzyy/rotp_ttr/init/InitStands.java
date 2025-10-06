@@ -32,29 +32,24 @@ public class InitStands {
     
     
     // Create all the abilities here...
-    public static final RegistryObject<CrazyDiamondRepairItem> REPAIR = ACTIONS.register("repair",
-            () -> new CrazyDiamondRepairItem(new StandEntityAction.Builder().holdType().staminaCostTick(0.2F)
-                    .resolveLevelToUnlock(0).isTrained()
-                    .standOffsetFromUser(0.667, 0.2, 0).standPose(CrazyDiamondRepairItem.ITEM_FIX_POSE)
-                    .standSound(StandEntityAction.Phase.PERFORM, ModSounds.CRAZY_DIAMOND_FIX_STARTED)
-                    .standAutoSummonMode(StandEntityAction.AutoSummonMode.OFF_ARM)
-                    .partsRequired(StandPart.ARMS)));
-
-
        public static final RegistryObject<StandEntityAction> BOOM = ACTIONS.register("explod",
             () -> new ExplodAction(new StandEntityAction.Builder()
                     .holdToFire(20, true)
                     .standRecoveryTicks(20)
                     .standSound(InitSounds.STAND_PUNCH_LIGHT)
                     .staminaCost(75)
-                    .partsRequired(StandPart.ARMS)));
+                    .cooldown(120)
+                    .partsRequired(StandPart.ARMS)
+                    .resolveLevelToUnlock(2)));
 
     public static final RegistryObject<StandEntityAction> ARCHER = ACTIONS.register("emiya",
             () -> new TraceOnAction(new StandEntityAction.Builder()
-                    .holdToFire(200, true)
+                    .holdToFire(20, true)
                     .standRecoveryTicks(20)
                     .staminaCost(750)
-                    .partsRequired(StandPart.ARMS)));
+                    .partsRequired(StandPart.ARMS)
+                    .resolveLevelToUnlock(3)
+                    .cooldown(1200)));
 
     public static final RegistryObject<StandEntityAction> GIVE_TEARS = ACTIONS.register("givetears",
             () -> new GiveTears(new StandEntityAction.Builder()
@@ -69,7 +64,9 @@ public class InitStands {
                     .standRecoveryTicks(20)
                     .standSound(InitSounds.STAND_PUNCH_LIGHT)
                     .staminaCost(150)
-                    .partsRequired(StandPart.MAIN_BODY)));
+                    .partsRequired(StandPart.MAIN_BODY)
+                    .resolveLevelToUnlock(3)
+            ));
 
     public static final RegistryObject<StandEntityAction> MOBRANDOM = ACTIONS.register("randommob",
             () -> new SummonTaggedMobsAction(new StandEntityAction.Builder()
@@ -78,31 +75,32 @@ public class InitStands {
                     .standSound(ModSounds.AJA_STONE_BEAM)
                     .shiftVariationOf(InitStands.CRASH)
                     .staminaCost(75)
-                    .partsRequired(StandPart.MAIN_BODY)));
-
-    public static final RegistryObject<StandEntityAction> SDPM = ACTIONS.register("meteor",
-            () -> new SummonDeadphotomemtorAction(new StandEntityAction.Builder()
-                    .holdToFire(20, false)
-                    .standRecoveryTicks(20)
-                    .staminaCost(7500)
-                    .partsRequired(StandPart.MAIN_BODY)));
-
+                    .partsRequired(StandPart.MAIN_BODY)
+                    .resolveLevelToUnlock(3)));
 
 
     public static final RegistryObject<StandEntityAction> SINGLELIGHTING = ACTIONS.register("lighting_single",
             () -> new SingleLightingHit(new StandEntityAction.Builder()
                     .cooldown(120)
                     .staminaCostTick(75F)
-                    .holdToFire(12, true)
-                    .resolveLevelToUnlock(3)));
+                    .holdToFire(12, true)));
 
     public static final RegistryObject<StandEntityAction> LIGHTING = ACTIONS.register("lighting",
             () -> new lightinghit(new StandEntityAction.Builder()
                     .cooldown(1200)
                     .staminaCostTick(75F)
                     .shiftVariationOf(SINGLELIGHTING)
-                    .holdToFire(30, true)
-                    .resolveLevelToUnlock(3)));
+                    .holdToFire(30, true)));
+
+    public static final RegistryObject<StandEntityAction> SDPM = ACTIONS.register("meteor",
+            () -> new SummonDeadphotomemtorAction(new StandEntityAction.Builder()
+                    .holdToFire(20, false)
+                    .standRecoveryTicks(20)
+                    .staminaCost(750)
+                    .partsRequired(StandPart.MAIN_BODY)
+                    .resolveLevelToUnlock(3)
+                    .attackRecoveryFollowup(LIGHTING)));
+
 
     public static final RegistryObject<StandEntityAction> ITEM_FILL = ACTIONS.register("item_fill",
             ()->new RefillAmmoAction(new StandEntityAction.Builder().holdType()
@@ -110,16 +108,20 @@ public class InitStands {
 
     public static final RegistryObject<StandEntityAction> LOVETRAIN = ACTIONS.register("lovetrain",
             ()->new LoveTrainAction(new StandEntityAction.Builder().holdType()
-                    .holdToFire(50, false)));
+                    .holdToFire(50, false)
+                    .resolveLevelToUnlock(3)
+                    .cooldown(1200)));
 
     public static final RegistryObject<StandAction> GIVE = ACTIONS.register("sharelovetrain",
             () -> new GiveLFAction(new StandAction.Builder()
-                    .staminaCost(400)));
+                    .staminaCost(400)
+                    .resolveLevelToUnlock(3)));
 
     public static final RegistryObject<StandAction> REMOVE = ACTIONS.register("remove",
             () -> new RemoveLFAction(new StandAction.Builder()
                     .staminaCost(400)
-                    .shiftVariationOf(InitStands.GIVE)));
+                    .shiftVariationOf(InitStands.GIVE)
+                    .resolveLevelToUnlock(3)));
 
 
     public static final RegistryObject<StandEntityAction> DLOVETRAIN = ACTIONS.register("removel",
