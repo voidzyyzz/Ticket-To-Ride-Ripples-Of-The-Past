@@ -46,11 +46,11 @@ public class LoveTrainEventHandler {
     private static final double BASE_RADIUS = 0.3;
     private static final double MAX_RADIUS = 27.0;
     private static final double GROWTH_RATE = 0.02;//待会改
-    private static final int BASE_COLUMNS = 9;
-    private static final int MAX_COLUMNS = 70;
+    private static final int BASE_COLUMNS = 6;
+    private static final int MAX_COLUMNS = 40;
     private static final int WORLD_TOP = 246;
     private static final int WORLD_BOTTOM = 0;
-    private static final double MIN_PILLAR_DISTANCE = 0.55;
+    private static final double MIN_PILLAR_DISTANCE = 2;
 
     // ========== 防御系统参数 ==========
     private static final float DAMAGE_IMMUNITY_CHANCE = 1.0f;
@@ -63,13 +63,13 @@ public class LoveTrainEventHandler {
     // ========== 摩西开海参数 ==========
     private static final int PARTING_SEA_WIDTH = 5;
     private static final double PARTING_SEA_HEIGHT_OFFSET = 1.5;
-    private static final int WATER_CLEAR_INTERVAL = 8;
+    private static final int WATER_CLEAR_INTERVAL = 5;
 
     // ========== 投射物清除参数 ==========
     private static final double PROJECTILE_CLEAR_RANGE = 15;
 
     // ========== 排斥系统参数 ==========
-    private static final double REPEL_FORCE = 1.3;
+    private static final double REPEL_FORCE = 1.2;
 
     // ========== 内圈光带系统参数 ==========
     private static final int INNER_RING_COLUMNS = 7;
@@ -94,7 +94,7 @@ public class LoveTrainEventHandler {
     private static final int PARTICLE_BATCH_SIZE = 1;
 
     // 光墙参数
-    private static final int LIGHTWALL_COLUMNS = 7;
+    private static final int LIGHTWALL_COLUMNS = 5;
     private static final double LIGHTWALL_RADIUS_RATIO = 0.85;
     private static final double LIGHTWALL_HEIGHT_OFFSET = 0.5;
     private static final double LIGHTWALL_VERTICAL_SPACING = 1.2;

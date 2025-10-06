@@ -22,6 +22,7 @@
   "message.trace_on.none": "this item cant be more strength",
   "jojo.message.action_condition.no_enchantable_item": "§citem cant be enchanted now",
   "message.tears_blade.refilled": " ",
+  "jojo.message.action_condition.no_tears_blade": "no tear blade",
   "message.rotp_ttr.already_has_love_train": "you already on Love Train",
   "message.rotp_ttr.no_love_train_to_dispel": "Love Train has been canceled",
   "message.rotp_ttr.love_train_reflect": "§6You were hit by Love Train's damage reflection!",

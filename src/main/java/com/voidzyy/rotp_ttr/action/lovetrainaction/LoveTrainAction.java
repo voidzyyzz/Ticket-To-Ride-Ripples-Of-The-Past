@@ -101,7 +101,7 @@ public class LoveTrainAction extends StandEntityAction {
         LivingEntity user = userPower.getUser();
         user.addEffect(new EffectInstance(
                 InitStatusEffect.LOVE_TRAIN.get(),
-                5 * 60 * 20,
+                10 * 60 * 20,
                 0,
                 false,
                 false,
