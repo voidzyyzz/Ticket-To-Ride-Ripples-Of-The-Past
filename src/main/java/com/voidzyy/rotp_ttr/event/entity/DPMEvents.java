@@ -1,4 +1,4 @@
-package com.voidzyy.rotp_ttr.event;
+package com.voidzyy.rotp_ttr.event.entity;
 
 
 import com.voidzyy.rotp_ttr.AddonMain;
@@ -14,5 +14,7 @@ public class DPMEvents {
     @SubscribeEvent
     public static void DPMEvents(FMLClientSetupEvent event){
         RenderingRegistry.registerEntityRenderingHandler(InitEntities.DPM.get(), DeadphotomemtoRenderer::new);
+
+
     }
 }

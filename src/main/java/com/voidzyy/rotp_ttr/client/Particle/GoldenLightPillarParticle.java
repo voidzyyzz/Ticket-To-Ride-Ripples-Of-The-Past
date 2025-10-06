@@ -1,4 +1,4 @@
-package com.voidzyy.rotp_ttr.client;
+package com.voidzyy.rotp_ttr.client.Particle;
 
 import com.mojang.blaze3d.vertex.IVertexBuilder;
 import net.minecraft.client.particle.*;
@@ -192,7 +192,7 @@ public class GoldenLightPillarParticle extends SpriteTexturedParticle {
     public static class Factory implements IParticleFactory<BasicParticleType> {
         private final IAnimatedSprite sprites;
 
-        public Factory(IAnimatedSprite sprites) {
+        public Factory(IAnimatedSprite sprites, float v) {
             this.sprites = sprites;
         }
 

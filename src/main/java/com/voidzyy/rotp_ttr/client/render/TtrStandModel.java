@@ -1,14 +1,14 @@
 package com.voidzyy.rotp_ttr.client.render;
 
-import com.voidzyy.rotp_ttr.entity.TicketToRideStandEntity;
 import com.github.standobyte.jojo.client.render.entity.model.stand.HumanoidStandModel;
 import com.github.standobyte.jojo.client.render.entity.pose.ModelPose;
 import com.github.standobyte.jojo.client.render.entity.pose.RotationAngle;
+import com.voidzyy.rotp_ttr.entity.TicketToRideStandEntity;
 
-public class ExampleStandModel extends HumanoidStandModel<TicketToRideStandEntity> {
+public class TtrStandModel extends HumanoidStandModel<TicketToRideStandEntity> {
     /* THIS SHOULD BE EMPTY*/
 
-    public ExampleStandModel() {
+    public TtrStandModel() {
         super();
 
         addHumanoidBaseBoxes(null);
