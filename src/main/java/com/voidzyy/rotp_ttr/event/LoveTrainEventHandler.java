@@ -1,202 +1,726 @@
-package com.voidzyy.rotp_ttr.action.lovetrainaction;
+package com.voidzyy.rotp_ttr.event;
 
-import com.github.standobyte.jojo.action.ActionConditionResult;
-import com.github.standobyte.jojo.action.ActionTarget;
-import com.github.standobyte.jojo.action.stand.StandEntityAction;
 import com.github.standobyte.jojo.entity.stand.StandEntity;
-import com.github.standobyte.jojo.entity.stand.StandEntityTask;
-import com.github.standobyte.jojo.power.impl.stand.IStandPower;
+import com.github.standobyte.jojo.init.ModParticles;
 import com.voidzyy.rotp_ttr.init.InitParticle;
 import com.voidzyy.rotp_ttr.init.InitStatusEffect;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.material.Material;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.potion.Effect;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.EntityRayTraceResult;
+import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.ProjectileImpactEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.living.LivingKnockBackEvent;
+import net.minecraftforge.event.world.ExplosionEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-public class LoveTrainAction extends StandEntityAction {
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-    public LoveTrainAction(Builder builder) {
-        super(builder);
-    }
+@Mod.EventBusSubscriber(modid = "rotp_ttr")
+public class LoveTrainEventHandler {
+    // ========== 核心参数 ==========
+    private static final Random random = new Random();
+    private static final Map<LivingEntity, LoveTrainData> ACTIVE_EFFECTS = new ConcurrentHashMap<>();
+    private static final double BASE_RADIUS = 0.3;
+    private static final double MAX_RADIUS = 27.0;
+    private static final double GROWTH_RATE = 0.02;//待会改
+    private static final int BASE_COLUMNS = 9;
+    private static final int MAX_COLUMNS = 70;
+    private static final int WORLD_TOP = 246;
+    private static final int WORLD_BOTTOM = 0;
+    private static final double MIN_PILLAR_DISTANCE = 0.55;
 
-    @Override
-    protected ActionConditionResult checkStandConditions(StandEntity stand, IStandPower power, ActionTarget target) {
-        LivingEntity user = power.getUser();
-        if (user.hasEffect(InitStatusEffect.LOVE_TRAIN.get())) {
-            return ActionConditionResult.createNegative(new TranslationTextComponent("message.rotp_ttr.already_has_love_train"));
+    // ========== 防御系统参数 ==========
+    private static final float DAMAGE_IMMUNITY_CHANCE = 1.0f;
+    private static final double LF_PROTECTION_RADIUS_MULTIPLIER = 1.2;
+    private static final float LF_REFLECT_PERCENTAGE = 0.9f;
+    private static final float RANDOM_REFLECT_CHANCE = 0.75f;
+    private static final float RANDOM_REFLECT_MULTIPLIER_MIN = 1.5f;
+    private static final float RANDOM_REFLECT_MULTIPLIER_MAX = 3.0f;
+
+    // ========== 摩西开海参数 ==========
+    private static final int PARTING_SEA_WIDTH = 5;
+    private static final double PARTING_SEA_HEIGHT_OFFSET = 1.5;
+    private static final int WATER_CLEAR_INTERVAL = 8;
+
+    // ========== 投射物清除参数 ==========
+    private static final double PROJECTILE_CLEAR_RANGE = 15;
+
+    // ========== 排斥系统参数 ==========
+    private static final double REPEL_FORCE = 1.3;
+
+    // ========== 内圈光带系统参数 ==========
+    private static final int INNER_RING_COLUMNS = 7;
+    private static final double INNER_RING_RADIUS_RATIO = 1.3;
+    private static final double INNER_RING_HEIGHT_OFFSET = 1.0;
+    private static final double INNER_RING_VERTICAL_SPACING = 1.5;
+    private static final float INNER_RING_PARTICLE_CHANCE = 0.7f;
+    private static final float INNER_RING_ENERGY_BALL_CHANCE = 0.01f;
+
+    // ========== 装饰墙参数 ==========
+    private static final int DECORATIVE_WALL_COUNT = 6;
+    private static final double WALL_RADIUS_RATIO = 0.6;
+    private static final double WALL_HEIGHT_OFFSET = 0.0;
+    private static final double WALL_MAX_HEIGHT_ABOVE_PLAYER = 10.0;
+    private static final double WALL_VERTICAL_SPACING = 1.5;
+    private static final float WALL_PARTICLE_CHANCE = 0.4f;
+
+    // ========== 粒子系统参数 ==========
+    private static final double VERTICAL_SPACING = 15;
+    private static final float PARTICLE_LIFETIME = 0.0f;
+    private static final int PARTICLE_SPAWN_INTERVAL = 2;
+    private static final int PARTICLE_BATCH_SIZE = 1;
+
+    // 光墙参数
+    private static final int LIGHTWALL_COLUMNS = 7;
+    private static final double LIGHTWALL_RADIUS_RATIO = 0.85;
+    private static final double LIGHTWALL_HEIGHT_OFFSET = 0.5;
+    private static final double LIGHTWALL_VERTICAL_SPACING = 1.2;
+    private static final double LIGHTWALL_DRIFT = 0.15;
+    private static final float LIGHTWALL_CHANCE = 0.05f;
+
+    // 装饰环参数
+    private static final int DECORATIVE_RING_COUNT = 4;
+    private static final double DECORATIVE_RING_RADIUS_RATIO = 1.5;
+    private static final double DECORATIVE_RING_HEIGHT_OFFSET = 1.2;
+    private static final double DECORATIVE_RING_VERTICAL_SPACING = 2.2;
+    private static final float DECORATIVE_PARTICLE_CHANCE = 0.05f;
+    private static final float GOLD_BALL_CHANCE = 0.03f;
+
+    // 能量场参数
+    private static final int ENERGY_BALL_COUNT = 2;
+    private static final double ENERGY_BALL_HEIGHT = 2.5;
+    private static final float ENERGY_BALL_CHANCE = 0.01f;
+
+    // ========== 事件处理器 ==========
+    @SubscribeEvent
+    public static void onWorldTick(TickEvent.WorldTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || event.world.isClientSide()) {
+            return;
         }
-        return ActionConditionResult.POSITIVE;
-    }
 
-    @Override
-    public void onHoldTickClientEffect(LivingEntity user, IStandPower power, int ticksHeld, boolean reqFulfilled, boolean reqStateChanged) {
-        if (reqFulfilled) {
-            // 从底部生成螺旋上升的GoldLight粒子
-            if (ticksHeld % 3 == 0) {
-                double progress = ticksHeld / 40.0;
-                double radius = 0.8 + progress * 0.5;
-                double startY = user.getY(); // 从使用者脚部开始
-                double endY = user.getY() + user.getBbHeight() + 1.0; // 到碰撞箱顶部+1
+        Iterator<Map.Entry<LivingEntity, LoveTrainData>> iterator = ACTIVE_EFFECTS.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<LivingEntity, LoveTrainData> entry = iterator.next();
+            LivingEntity entity = entry.getKey();
 
-                for (int i = 0; i < 4; i++) {
-                    double angle = Math.toRadians(ticksHeld * 5 + i * 90);
-                    // 修正：使用新的Vector3d构造函数而不是withY方法
-                    Vector3d startPos = new Vector3d(
-                            user.getX() + Math.cos(angle) * radius,
-                            startY,
-                            user.getZ() + Math.sin(angle) * radius
-                    );
-
-                    // 计算粒子运动方向
-                    double verticalSpeed = 0.05 * (1 + progress * 0.5);
-
-                    user.level.addParticle(InitParticle.GOLDLIGHT.get(),
-                            startPos.x, startPos.y, startPos.z,
-                            0, verticalSpeed, 0);
-
-                }
+            if (!entity.isAlive() || !entity.hasEffect(InitStatusEffect.LOVE_TRAIN.get())) {
+                iterator.remove();
+                continue;
             }
 
-            // 随机逃逸粒子（保持不变）
-            if (ticksHeld % 5 == 0) {
-                Vector3d center = user.position().add(0, 1, 0);
-                for (int i = 0; i < 3; i++) {
-                    double angle = Math.toRadians(user.level.random.nextFloat() * 360);
-                    double radius = user.level.random.nextDouble() * 1.5;
+            LoveTrainData data = entry.getValue();
+            data.update();
 
-                    Vector3d pos = center.add(
-                            Math.cos(angle) * radius,
-                            user.level.random.nextDouble() * 2,
-                            Math.sin(angle) * radius
-                    );
-
-                    // 50%概率生成GoldLight或LightBall
-                    if (user.level.random.nextBoolean()) {
-                        user.level.addParticle(InitParticle.GOLDLIGHT.get(),
-                                pos.x, pos.y, pos.z,
-                                Math.cos(angle) * 0.1,
-                                0.05,
-                                Math.sin(angle) * 0.1);
-                    } else {
-                        user.level.addParticle(InitParticle.LIGHTWALLS.get(),
-                                pos.x, pos.y, pos.z,
-                                Math.cos(angle) * 0.15,
-                                0.1,
-                                Math.sin(angle) * 0.15);
-                    }
-                }
+            if (event.world.getGameTime() % WATER_CLEAR_INTERVAL == 0) {
+                clearPartingSea((ServerWorld) event.world, entity, data.getCurrentRadius());
             }
 
+            if (event.world.getGameTime() % PARTICLE_SPAWN_INTERVAL == 0) {
+                spawnFullParticleSystem((ServerWorld) event.world, entity, data);
+            }
+
+            repelEntities(event.world, entity, data);
         }
     }
 
-    @Override
-    public void standPerform(World world, StandEntity standEntity, IStandPower userPower, StandEntityTask task) {
-        if (world.isClientSide()) return;
+    // ========== 摩西开海系统 ==========
+    private static void clearPartingSea(ServerWorld world, LivingEntity entity, double currentRadius) {
+        Vector3d lookVec = entity.getLookAngle();
+        Vector3d center = entity.position().add(0, PARTING_SEA_HEIGHT_OFFSET, 0);
+        Vector3d rightVec = new Vector3d(-lookVec.z, 0, lookVec.x).normalize();
 
-        LivingEntity user = userPower.getUser();
-        user.addEffect(new EffectInstance(
-                InitStatusEffect.LOVE_TRAIN.get(),
-                5 * 60 * 20,
-                0,
-                false,
-                false,
-                true
-        ));
 
-        world.playSound(null, user.getX(), user.getY(), user.getZ(),
-                SoundEvents.BEACON_ACTIVATE, SoundCategory.PLAYERS,
-                1.0F, 0.9F + world.random.nextFloat() * 0.2F);
+        for (double distance = -currentRadius; distance <= currentRadius; distance += 1.0) {
+            Vector3d linePos = center.add(lookVec.scale(distance));
 
-        if (world instanceof ServerWorld) {
-            spawnFullActivationEffect((ServerWorld) world, user.position());
+            for (double widthOffset = -PARTING_SEA_WIDTH / 2.0; widthOffset <= PARTING_SEA_WIDTH / 2.0; widthOffset += 1.0) {
+                Vector3d clearPos = linePos.add(rightVec.scale(widthOffset));
+
+                for (int y = WORLD_BOTTOM; y <= WORLD_TOP; y++) {
+                    BlockPos pos = new BlockPos(clearPos.x, y, clearPos.z);
+                    clearLiquidAtPos(world, pos);
+                }
+            }
         }
     }
 
-    private void spawnFullActivationEffect(ServerWorld world, Vector3d center) {
-        // 1. 中心光壁柱子展开
-        spawnExpandingLightPillars(world, center);
-
-        // 2. 底部扩散的LightBall
-        spawnGroundSpread(world, center);
-
-        // 3. 外层LightWall边界
-        spawnOuterLightWall(world, center);
+    private static void clearLiquidAtPos(World world, BlockPos pos) {
+        BlockState state = world.getBlockState(pos);
+        if (state.getMaterial() == Material.WATER || state.getMaterial() == Material.LAVA) {
+            world.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
+            if (world instanceof ServerWorld) {
+                ((ServerWorld) world).getBlockTicks().scheduleTick(pos, state.getBlock(), 100);
+            }
+        }
     }
 
-    private void spawnExpandingLightPillars(ServerWorld world, Vector3d center) {
-        // 主光柱(8个方向)
-        for (int i = 0; i < 8; i++) {
-            double angle = Math.toRadians(i * 45);
-            double radius = 1.0;
+    // ========== 内圈光带系统 ==========
+    private static void spawnInnerLightRing(ServerWorld world, Vector3d center, double radius) {
+        double innerRadius = radius * INNER_RING_RADIUS_RATIO;
+
+        for (int i = 0; i < INNER_RING_COLUMNS; i++) {
+            double angle = 2 * Math.PI * i / INNER_RING_COLUMNS;
+            double x = center.x + Math.cos(angle) * innerRadius;
+            double z = center.z + Math.sin(angle) * innerRadius;
+
+            for (double y = WORLD_BOTTOM; y <= WORLD_TOP; y += INNER_RING_VERTICAL_SPACING) {
+                world.sendParticles(InitParticle.LIGHTWALLP.get(),
+                        x, y + INNER_RING_HEIGHT_OFFSET, z,
+                        1, 0, 0, 0, PARTICLE_LIFETIME);
+            }
+
+            if (random.nextFloat() < INNER_RING_PARTICLE_CHANCE) {
+                world.sendParticles(InitParticle.GOLDLIGHT.get(),
+                        x, center.y + INNER_RING_HEIGHT_OFFSET, z,
+                        1, 0, 0.05, 0, 0.15f);
+            }
+
+            if (random.nextFloat() < INNER_RING_ENERGY_BALL_CHANCE) {
+                world.sendParticles(InitParticle.LIGHTBALL.get(),
+                        x, center.y + INNER_RING_HEIGHT_OFFSET + 0.5, z,
+                        1, 0, 0.1, 0, 0.2f);
+            }
+        }
+    }
+
+    // ========== 完整粒子系统 ==========
+    private static void spawnFullParticleSystem(ServerWorld world, LivingEntity entity, LoveTrainData data) {
+        Vector3d center = entity.position();
+        double radius = data.getCurrentRadius();
+        int columns = data.getCurrentColumns();
+
+        for (int i = 0; i < columns; i += 2) {
+            double angle = 2 * Math.PI * i / columns;
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
 
-            // 从地面到3格高的光柱
-            for (double y = 0; y <= 3; y += 0.2) {
+            for (double y = WORLD_BOTTOM; y <= WORLD_TOP; y += VERTICAL_SPACING * 1.5) {
                 world.sendParticles(InitParticle.LIGHTWALLP.get(),
-                        x, center.y + y, z,
-                        1, 0, 0.05, 0, 0.3f);
+                        x, y, z,
+                        PARTICLE_BATCH_SIZE, 0, 0, 0, PARTICLE_LIFETIME);
             }
+        }
 
-            // 随机添加短光柱(LightWallS)
-            if (world.random.nextFloat() < 0.3) {
+        spawnDecorativeWalls(world, entity, radius);
+
+        if (world.getGameTime() % 3 == 0) {
+            spawnInnerLightRing(world, center, radius);
+        }
+
+        if (random.nextFloat() < LIGHTWALL_CHANCE) {
+            spawnLightWalls(world, center, radius);
+        }
+
+        spawnDecorativeOuterRing(world, center, radius);
+
+        if (world.getGameTime() % 40 == 0) {
+            spawnEnergyField(world, center, radius);
+        }
+    }
+
+    private static void spawnDecorativeWalls(ServerWorld world, LivingEntity entity, double radius) {
+        Vector3d center = entity.position();
+        double wallRadius = radius * WALL_RADIUS_RATIO;
+        double maxHeight = entity.getY() + entity.getBbHeight() + WALL_MAX_HEIGHT_ABOVE_PLAYER;
+
+        for (int i = 0; i < DECORATIVE_WALL_COUNT; i++) {
+            double angle = 2 * Math.PI * i / DECORATIVE_WALL_COUNT;
+            double x = center.x + Math.cos(angle) * wallRadius;
+            double z = center.z + Math.sin(angle) * wallRadius;
+
+            for (double y = entity.getY(); y <= maxHeight; y += WALL_VERTICAL_SPACING) {
+                if (random.nextFloat() < WALL_PARTICLE_CHANCE) {
+                    world.sendParticles(InitParticle.LIGHTWALLP.get(),
+                            x, y + WALL_HEIGHT_OFFSET, z,
+                            PARTICLE_BATCH_SIZE, 0, 0, 0, PARTICLE_LIFETIME);
+                }
+            }
+        }
+    }
+
+    private static void spawnLightWalls(ServerWorld world, Vector3d center, double radius) {
+        for (int i = 0; i < LIGHTWALL_COLUMNS; i++) {
+            double angle = 2 * Math.PI * i / LIGHTWALL_COLUMNS;
+            double x = center.x + Math.cos(angle) * radius * LIGHTWALL_RADIUS_RATIO;
+            double z = center.z + Math.sin(angle) * radius * LIGHTWALL_RADIUS_RATIO;
+
+            for (double y = WORLD_BOTTOM; y <= WORLD_TOP; y += LIGHTWALL_VERTICAL_SPACING) {
                 world.sendParticles(InitParticle.LIGHTWALLS.get(),
-                        x + (world.random.nextDouble() - 0.5) * 0.3,
-                        center.y + 1.5,
-                        z + (world.random.nextDouble() - 0.5) * 0.3,
-                        1, 0, 0.03, 0, 0.25f);
+                        x + (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT,
+                        y + LIGHTWALL_HEIGHT_OFFSET,
+                        z + (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT,
+                        3, 0.1, 0.1, 0.1, 0.05f);
             }
         }
     }
 
-    private void spawnGroundSpread(ServerWorld world, Vector3d center) {
-        // 地面扩散的LightBall(2层)
-        for (int layer = 0; layer < 2; layer++) {
-            double radius = 1.0 + layer * 2.0;
-            int particles = 30 + layer * 20;
+    private static void spawnDecorativeOuterRing(ServerWorld world, Vector3d center, double radius) {
+        double outerRadius = radius * DECORATIVE_RING_RADIUS_RATIO;
 
-            for (int i = 0; i < particles; i++) {
-                double angle = Math.toRadians(world.random.nextDouble() * 360);
-                double distance = world.random.nextDouble() * radius;
+        for (int i = 0; i < DECORATIVE_RING_COUNT; i++) {
+            double angle = 2 * Math.PI * i / DECORATIVE_RING_COUNT;
+            double randomOffset = 0.2 + random.nextDouble() * 0.3;
+            double x = center.x + Math.cos(angle) * (outerRadius + randomOffset);
+            double z = center.z + Math.sin(angle) * (outerRadius + randomOffset);
 
-                world.sendParticles(InitParticle.LIGHTWALLP.get(),
-                        center.x + Math.cos(angle) * distance,
-                        center.y + 0.1,
-                        center.z + Math.sin(angle) * distance,
-                        1,
-                        Math.cos(angle) * 0.05,
-                        0.02,
-                        Math.sin(angle) * 0.05,
-                        0.4f);
+            for (double y = WORLD_BOTTOM; y <= WORLD_TOP; y += DECORATIVE_RING_VERTICAL_SPACING) {
+                if (random.nextFloat() < DECORATIVE_PARTICLE_CHANCE) {
+                    world.sendParticles(InitParticle.GOLDLIGHT.get(),
+                            x + (random.nextDouble() - 0.5) * 0.5,
+                            y + DECORATIVE_RING_HEIGHT_OFFSET,
+                            z + (random.nextDouble() - 0.5) * 0.5,
+                            2, 0.1, 0.1, 0.1, 0.25f);
+                }
+            }
+
+            if (random.nextFloat() < GOLD_BALL_CHANCE) {
+                world.sendParticles(InitParticle.LIGHTBALL.get(),
+                        x,
+                        center.y + DECORATIVE_RING_HEIGHT_OFFSET + (random.nextDouble() * 3 - 1.5),
+                        z,
+                        2, 0.15, 0.15, 0.15, 0.3f);
             }
         }
     }
 
-    private void spawnOuterLightWall(ServerWorld world, Vector3d center) {
-        // 外层LightWall(12个方向)
-        for (int i = 0; i < 12; i++) {
-            double angle = Math.toRadians(i * 30);
-            double radius = 4.0;
-
-            // 从地面到2格高的光墙
-            for (double y = 0; y <= 2; y += 0.3) {
-                world.sendParticles(InitParticle.LIGHTWALLP.get(),
-                        center.x + Math.cos(angle) * radius,
-                        center.y + y,
-                        center.z + Math.sin(angle) * radius,
-                        2, 0, 0.1, 0, 0.35f);
+    private static void spawnEnergyField(ServerWorld world, Vector3d center, double radius) {
+        if (random.nextFloat() < ENERGY_BALL_CHANCE) {
+            for (int i = 0; i < ENERGY_BALL_COUNT; i++) {
+                double offsetX = (random.nextDouble() - 0.5) * radius * 0.6;
+                double offsetZ = (random.nextDouble() - 0.5) * radius * 0.6;
+                world.sendParticles(InitParticle.LIGHTBALL.get(),
+                        center.x + offsetX,
+                        center.y + ENERGY_BALL_HEIGHT,
+                        center.z + offsetZ,
+                        1, 0, 0.1, 0, 0.25f);
             }
-
         }
     }
 
-    @Override
-    protected boolean standKeepsTarget(ActionTarget target) {
-        return false;
+
+
+    private static void spawnReflectParticles(ServerWorld world, Vector3d source, Vector3d target) {
+        Vector3d direction = target.subtract(source).normalize();
+        double distance = source.distanceTo(target);
+        int particleCount = Math.min(8, (int) (distance / 2));
+
+        for (int i = 0; i < particleCount; i++) {
+            double progress = i / (double) particleCount;
+            Vector3d pos = source.add(direction.scale(progress * distance));
+
+            world.sendParticles(InitParticle.LIGHTBALL.get(),
+                    pos.x, pos.y + 0.5, pos.z,
+                    1, 0, 0.05, 0, 0.1f);
+        }
     }
+
+    // ========== 排斥系统 ==========
+    private static void repelEntities(World world, LivingEntity source, LoveTrainData data) {
+        Vector3d center = source.position();
+        double radius = data.getCurrentRadius();
+        double actualForce = REPEL_FORCE * (1 + radius / MAX_RADIUS);
+
+        AxisAlignedBB area = new AxisAlignedBB(
+                source.getX() - radius, WORLD_BOTTOM, source.getZ() - radius,
+                source.getX() + radius, WORLD_TOP, source.getZ() + radius
+        );
+
+        world.getEntities(source, area, e -> {
+            if (e instanceof StandEntity || e instanceof ItemEntity) return false;
+            if (e instanceof LivingEntity) {
+                LivingEntity living = (LivingEntity) e;
+                return !living.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) &&
+                        !living.hasEffect(InitStatusEffect.LF.get());
+            }
+            return false;
+        }).forEach(entity -> {
+            Vector3d repelDirection = entity.position()
+                    .subtract(source.position())
+                    .normalize()
+                    .scale(actualForce);
+
+            entity.setDeltaMovement(repelDirection);
+            entity.hurtMarked = true;
+        });
+    }
+
+    // ========== 攻击检测与反伤系统 ==========
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onLivingAttack(LivingAttackEvent event) {
+        LivingEntity target = event.getEntityLiving();
+        DamageSource source = event.getSource();
+        Entity attacker = source.getEntity();
+
+        // 检查是否是有效攻击目标
+        if (!(target.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) ||
+                target.hasEffect(InitStatusEffect.LF.get()))) {
+            return;
+        }
+
+        // 检查是否在保护圈内（LF需要额外检查）
+        boolean isProtected = target.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) ||
+                (target.hasEffect(InitStatusEffect.LF.get()) &&
+                        ACTIVE_EFFECTS.keySet().stream()
+                                .anyMatch(e -> e.distanceToSqr(target) < Math.pow(getCurrentRadius(e) * LF_PROTECTION_RADIUS_MULTIPLIER, 2)));
+
+        if (isProtected) {
+            event.setCanceled(true);
+
+            // 只有实际攻击者触发反伤
+            if (attacker != null && !target.level.isClientSide()) {
+                performRandomCounterAttack(target.level, target, attacker);
+            }
+        }
+    }
+
+    private static void performRandomCounterAttack(World world, LivingEntity protectedEntity, Entity attacker) {
+        // 获取周围生物（排除自己、攻击者、其他受保护实体）
+        AxisAlignedBB area = protectedEntity.getBoundingBox().inflate(20.0);
+        List<LivingEntity> potentialTargets = world.getEntitiesOfClass(LivingEntity.class, area,
+                e -> e.isAlive() &&
+                        e != protectedEntity &&
+                    //  e != attacker &&
+                        !e.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) &&
+                        !e.hasEffect(InitStatusEffect.LF.get()));
+
+        if (!potentialTargets.isEmpty()) {
+            LivingEntity randomTarget = potentialTargets.get(world.random.nextInt(potentialTargets.size()));
+
+            // 计算反伤伤害（基础值+随机倍率）
+            float baseDamage = protectedEntity.getMaxHealth() * 0.15f;
+            float randomMultiplier = 0.8f + world.random.nextFloat() * 1.2f;
+            float totalDamage = baseDamage * randomMultiplier;
+
+            // 应用伤害
+            if (randomTarget.hurt(LoveTrainDamageSource.INSTANCE, totalDamage)) {
+                // 伤害成功应用时显示效果
+                if (world instanceof ServerWorld) {
+                    // 粒子效果从攻击者指向被反伤目标
+                    Vector3d attackerPos = attacker.position();
+                    Vector3d targetPos = randomTarget.position();
+                    spawnReflectParticle((ServerWorld) world, attackerPos, targetPos);
+
+                    // 给被反伤玩家发送消息
+                    if (randomTarget instanceof PlayerEntity) {
+                        ((PlayerEntity)randomTarget).displayClientMessage(
+                                new TranslationTextComponent("message.rotp_ttr.love_train_reflect",
+                                        String.format("%.1f", totalDamage)),
+                                true);
+                    }
+                }
+            }
+        }
+    }
+
+    // ========== 反伤粒子效果生成 ==========
+    private static void spawnReflectParticle(ServerWorld world, Vector3d source, Vector3d target) {
+        Vector3d direction = target.subtract(source).normalize();
+        double distance = source.distanceTo(target);
+        int particles = Math.min(15, (int)(distance * 2));
+
+        for (int i = 0; i < particles; i++) {
+            float progress = i / (float)particles;
+            Vector3d pos = source.add(direction.scale(progress * distance));
+
+            world.sendParticles(ModParticles.HAMON_SPARK.get(),
+                    pos.x, pos.y + 0.5, pos.z,
+                    1, 0, 0.05, 0, 0.15f);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onExplosion(ExplosionEvent.Detonate event) {
+        event.getAffectedEntities().removeIf(e -> {
+            if (e instanceof LivingEntity) {
+                LivingEntity living = (LivingEntity) e;
+
+                // LOVE_TRAIN实体直接免疫爆炸
+                if (living.hasEffect(InitStatusEffect.LOVE_TRAIN.get())) {
+                    return true;
+                }
+
+                // LF实体需要在扩张圈内才免疫爆炸
+                if (living.hasEffect(InitStatusEffect.LF.get())) {
+                    return ACTIVE_EFFECTS.keySet().stream()
+                            .anyMatch(lt -> lt.distanceToSqr(living) < Math.pow(getCurrentRadius(lt) * LF_PROTECTION_RADIUS_MULTIPLIER, 2));
+                }
+            }
+            return false;
+        });
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onKnockback(LivingKnockBackEvent event) {
+        LivingEntity entity = event.getEntityLiving();
+
+        // LOVE_TRAIN实体直接抵抗击退
+        if (entity.hasEffect(InitStatusEffect.LOVE_TRAIN.get())) {
+            event.setCanceled(true);
+            return;
+        }
+
+        // LF实体需要在扩张圈内才抵抗击退
+        if (entity.hasEffect(InitStatusEffect.LF.get())) {
+            boolean inRange = ACTIVE_EFFECTS.keySet().stream()
+                    .anyMatch(e -> e.distanceToSqr(entity) < Math.pow(getCurrentRadius(e) * LF_PROTECTION_RADIUS_MULTIPLIER, 2));
+
+            if (inRange) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    // ========== 反伤系统 ==========
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onLivingHurt(LivingHurtEvent event) {
+        LivingEntity entity = event.getEntityLiving();
+        World world = entity.level;
+
+        // LOVE_TRAIN实体直接反伤
+        if (entity.hasEffect(InitStatusEffect.LOVE_TRAIN.get())) {
+            if (random.nextFloat() <= DAMAGE_IMMUNITY_CHANCE) {
+                event.setCanceled(true);
+
+                float baseDamage = entity.getMaxHealth() * 0.75f;
+                float randomMultiplier = RANDOM_REFLECT_MULTIPLIER_MIN +
+                        random.nextFloat() * (RANDOM_REFLECT_MULTIPLIER_MAX - RANDOM_REFLECT_MULTIPLIER_MIN);
+                float totalDamage = baseDamage + (event.getAmount() * randomMultiplier);
+
+                if (!world.isClientSide()) {
+                    List<LivingEntity> targets = findValidTargets(world, entity.position(), 1);
+
+                    if (!targets.isEmpty()) {
+                        LivingEntity target = targets.get(0);
+                        target.hurt(DamageSource.MAGIC, totalDamage);
+
+                        if (world instanceof ServerWorld) {
+                            spawnReflectParticles((ServerWorld) world, entity.position(), target.position());
+                        }
+
+                        // 如果目标是玩家，发送反伤消息
+                        if (target instanceof PlayerEntity) {
+                            ((PlayerEntity) target).displayClientMessage(
+                                    new TranslationTextComponent("message.rotp_ttr.love_train_reflect",
+                                            String.format("%.1f", totalDamage)),
+                                    true);
+                        }
+                    }
+
+                    if (random.nextFloat() < RANDOM_REFLECT_CHANCE) {
+                        performCounterAttack(world, entity, event.getAmount());
+                        reflectToRandomTarget(world, entity, event.getAmount());
+                    }
+                }
+            }
+        }
+        // LF实体在扩张圈内反伤
+        else if (entity.hasEffect(InitStatusEffect.LF.get())) {
+            boolean inRange = ACTIVE_EFFECTS.keySet().stream()
+                    .anyMatch(e -> e.distanceToSqr(entity) < Math.pow(getCurrentRadius(e) * LF_PROTECTION_RADIUS_MULTIPLIER, 2));
+
+            if (inRange) {
+                event.setCanceled(true);
+
+                if (!world.isClientSide()) {
+                    List<LivingEntity> targets = findValidTargets(world, entity.position(), 1);
+
+                    if (!targets.isEmpty()) {
+                        LivingEntity target = targets.get(0);
+                        float reflectDamage = target.getMaxHealth() * LF_REFLECT_PERCENTAGE;
+                        target.hurt(DamageSource.MAGIC, reflectDamage);
+
+                        if (world instanceof ServerWorld) {
+                            spawnReflectParticles((ServerWorld) world, entity.position(), target.position());
+                        }
+
+                        // 如果目标是玩家，发送反伤消息
+                        if (target instanceof PlayerEntity) {
+                            ((PlayerEntity) target).displayClientMessage(
+                                    new TranslationTextComponent("message.rotp_ttr.lf_reflect",
+                                            String.format("%.1f", reflectDamage)),
+                                    true);
+                        }
+                    }
+
+                    if (random.nextFloat() < RANDOM_REFLECT_CHANCE) {
+                        performCounterAttack(world, entity, event.getAmount());
+                        reflectToRandomTarget(world, entity, event.getAmount());
+                    }
+                }
+            }
+        }
+    }
+
+    private static List<LivingEntity> findValidTargets(World world, Vector3d pos, int maxCount) {
+        return world.getEntitiesOfClass(LivingEntity.class,
+                        new AxisAlignedBB(
+                                pos.x - 30, pos.y - 10, pos.z - 30,
+                                pos.x + 30, pos.y + 10, pos.z + 30),
+                        e -> e.isAlive() &&
+                                !e.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) &&
+                                !e.hasEffect(InitStatusEffect.LF.get()) &&
+                                e.distanceToSqr(pos.x, pos.y, pos.z) > 1.0)
+                .stream()
+                .sorted(Comparator.comparingDouble(e -> e.distanceToSqr(pos.x, pos.y, pos.z)))
+                .limit(maxCount)
+                .collect(Collectors.toList());
+    }
+
+    private static void reflectToRandomTarget(World world, LivingEntity source, float originalDamage) {
+        List<LivingEntity> potentialTargets = world.getEntitiesOfClass(LivingEntity.class,
+                new AxisAlignedBB(
+                        source.getX() - PROJECTILE_CLEAR_RANGE,
+                        source.getY() - PROJECTILE_CLEAR_RANGE / 2,
+                        source.getZ() - PROJECTILE_CLEAR_RANGE,
+                        source.getX() + PROJECTILE_CLEAR_RANGE,
+                        source.getY() + PROJECTILE_CLEAR_RANGE / 2,
+                        source.getZ() + PROJECTILE_CLEAR_RANGE
+                ),
+                e -> e.isAlive() &&
+                        !e.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) &&
+                        !e.hasEffect(InitStatusEffect.LF.get()) &&
+                        e != source
+        );
+
+        if (!potentialTargets.isEmpty()) {
+            LivingEntity target = potentialTargets.get(random.nextInt(potentialTargets.size()));
+            float reflectDamage = originalDamage * (RANDOM_REFLECT_MULTIPLIER_MIN +
+                    random.nextFloat() * (RANDOM_REFLECT_MULTIPLIER_MAX - RANDOM_REFLECT_MULTIPLIER_MIN));
+
+            target.hurt(DamageSource.MAGIC, reflectDamage);
+
+            if (world instanceof ServerWorld) {
+                spawnReflectParticles((ServerWorld) world, source.position(), target.position());
+            }
+
+            if (target instanceof PlayerEntity) {
+                ((PlayerEntity) target).displayClientMessage(
+                        new TranslationTextComponent("message.rotp_ttr.love_train_reflect",
+                                source.getName().getString(),
+                                String.format("%.1f", reflectDamage)),
+                        true);
+            }
+        }
+    }
+    private static void performCounterAttack(World world, LivingEntity protectedEntity, float amount) {
+        AxisAlignedBB area = protectedEntity.getBoundingBox().inflate(20.0);
+        List<LivingEntity> nearbyEntities = world.getEntitiesOfClass(LivingEntity.class, area);
+        List<LivingEntity> validTargets = new ArrayList<>();
+
+        for (LivingEntity entity : nearbyEntities) {
+            if (entity != protectedEntity && !entity.hasEffect(InitStatusEffect.LOVE_TRAIN.get()) && !entity.hasEffect(InitStatusEffect.LF.get())) {
+                validTargets.add(entity);
+            }
+        }
+
+        if (!validTargets.isEmpty()) {
+            LivingEntity target = validTargets.get(random.nextInt(validTargets.size()));
+            float damage = target.getMaxHealth() * 0.2F;
+            target.hurt(DamageSource.MAGIC, damage);
+
+            // 粒子效果
+            if (world instanceof ServerWorld) {
+                spawnReflectParticles((ServerWorld) world, protectedEntity.position(), target.position());
+            }
+        }
+    }
+
+    // ========== 数据结构 ==========
+    private static class LoveTrainData {
+        private final long startTime = System.currentTimeMillis();
+        private double currentRadius = BASE_RADIUS;
+        private int currentColumns = BASE_COLUMNS;
+
+        public void update() {
+            long elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000;
+            currentRadius = Math.min(BASE_RADIUS + elapsedSeconds * GROWTH_RATE, MAX_RADIUS);
+
+            double circumference = 2 * Math.PI * currentRadius;
+            double currentDistance = circumference / currentColumns;
+
+            if (currentDistance > MIN_PILLAR_DISTANCE) {
+                currentColumns = (int) (circumference / MIN_PILLAR_DISTANCE);
+                currentColumns = Math.min(currentColumns, MAX_COLUMNS);
+            }
+        }
+
+        public double getCurrentRadius() {
+            return currentRadius;
+        }
+
+        public int getCurrentColumns() {
+            return currentColumns;
+        }
+    }
+
+    // ========== 辅助方法 ==========
+    private static boolean hasEffect(Entity entity, Effect effect) {
+        return entity instanceof LivingEntity && ((LivingEntity) entity).hasEffect(effect);
+    }
+
+    private static double getCurrentRadius(LivingEntity entity) {
+        LoveTrainData data = ACTIVE_EFFECTS.get(entity);
+        return data != null ? data.getCurrentRadius() : BASE_RADIUS;
+    }
+
+    @SubscribeEvent
+    public static void onEffectUpdate(LivingEvent.LivingUpdateEvent event) {
+        LivingEntity entity = event.getEntityLiving();
+        if (entity.hasEffect(InitStatusEffect.LOVE_TRAIN.get())) {
+            ACTIVE_EFFECTS.putIfAbsent(entity, new LoveTrainData());
+        } else {
+            ACTIVE_EFFECTS.remove(entity);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onProjectileImpact(ProjectileImpactEvent event) {
+        if (event.getRayTraceResult().getType() == RayTraceResult.Type.ENTITY) {
+            Entity target = ((EntityRayTraceResult) event.getRayTraceResult()).getEntity();
+            if (target instanceof LivingEntity && ACTIVE_EFFECTS.containsKey(target)) {
+                event.setCanceled(true);
+                event.getEntity().remove();
+            }
+        }
+    }
+    // ========== 自定义伤害源 ==========
+    public static class LoveTrainDamageSource extends DamageSource {
+        public static final LoveTrainDamageSource INSTANCE = new LoveTrainDamageSource();
+
+        private LoveTrainDamageSource() {
+            super("love_train_reflect");
+            this.bypassArmor();
+            this.bypassMagic();
+            this.setMagic();
+        }
+
+        @Override
+        public ITextComponent getLocalizedDeathMessage(LivingEntity entity) {
+            return new TranslationTextComponent("death.attack.love_train_reflect", entity.getDisplayName());
+        }
+    }
+
 }
