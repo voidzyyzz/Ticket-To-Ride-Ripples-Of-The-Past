@@ -280,16 +280,27 @@ public class LoveTrainEventHandler {
         double maxY = center.y;
 
         for (int i = 0; i < LIGHTWALL_COLUMNS; i++) {
+            // Randomize column positions within radius
             double angle = 2 * Math.PI * i / LIGHTWALL_COLUMNS;
-            double x = center.x + Math.cos(angle) * radius * LIGHTWALL_RADIUS_RATIO;
-            double z = center.z + Math.sin(angle) * radius * LIGHTWALL_RADIUS_RATIO;
+            double randomRadius = radius * LIGHTWALL_RADIUS_RATIO * (0.9 + random.nextDouble() * 0.2); // Random radius variation
+            double x = center.x + Math.cos(angle) * randomRadius;
+            double z = center.z + Math.sin(angle) * randomRadius;
 
-            for (double y = minY; y <= maxY; y += LIGHTWALL_VERTICAL_SPACING) {
+            // Random vertical spacing
+            double verticalSpacing = LIGHTWALL_VERTICAL_SPACING * (0.8 + random.nextDouble() * 0.4);
+
+            for (double y = minY; y <= maxY; y += verticalSpacing) {
+                // Add random position offsets
+                double xOffset = (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT * 2;
+                double zOffset = (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT * 2;
+
                 world.sendParticles(InitParticle.LIGHTWALLS.get(),
-                        x + (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT,
+                        x + xOffset,
                         y + LIGHTWALL_HEIGHT_OFFSET,
-                        z + (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT,
-                        3, 0.1, 0.1, 0.1, PARTICLE_LIFETIME);
+                        z + zOffset,
+                        3, // Particle count
+                        0.1, 0.1, 0.1, // Random motion
+                        0.01f); // Particle lifetime set to 0
             }
         }
     }
