@@ -96,12 +96,12 @@ public class LoveTrainEventHandler {
     private static final int PARTICLE_BATCH_SIZE = 2;
 
     // 光墙参数
-    private static final int LIGHTWALL_COLUMNS = 4;
+    private static final int LIGHTWALL_COLUMNS = 6;
     private static final double LIGHTWALL_RADIUS_RATIO = 0.85;
     private static final double LIGHTWALL_HEIGHT_OFFSET = 0.0; // 从脚底开始
-    private static final double LIGHTWALL_VERTICAL_SPACING = 3.2;
+    private static final double LIGHTWALL_VERTICAL_SPACING = 0.2;
     private static final double LIGHTWALL_DRIFT = 0.15;
-    private static final float LIGHTWALL_CHANCE = 0.05f;
+    private static final float LIGHTWALL_CHANCE = 0.1f;
 
     // 装饰环参数
     private static final int DECORATIVE_RING_COUNT = 4;
