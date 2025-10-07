@@ -237,7 +237,7 @@ public class LoveTrainEventHandler {
             spawnLightWalls(world, center, radius);
         }
 
-        spawnDecorativeOuterRing(world, center, radius);
+        /*spawnDecorativeOuterRing(world, center, radius);*/
 
         if (world.getGameTime() % 40 == 0) {
             spawnEnergyField(world, center, radius);
@@ -297,7 +297,7 @@ public class LoveTrainEventHandler {
         }
     }
 
-    // ========== 装饰外环系统 ==========
+    /*/ ========== 装饰外环系统 ==========
     private static void spawnDecorativeOuterRing(ServerWorld world, Vector3d center, double radius) {
         double outerRadius = radius * DECORATIVE_RING_RADIUS_RATIO;
         double minY = center.y-1;
@@ -327,7 +327,7 @@ public class LoveTrainEventHandler {
                         2, 0.15, 0.15, 0.15, 0.0);
             }
         }
-    }
+    }*/
 
     private static void spawnEnergyField(ServerWorld world, Vector3d center, double radius) {
         if (random.nextFloat() < ENERGY_BALL_CHANCE) {
