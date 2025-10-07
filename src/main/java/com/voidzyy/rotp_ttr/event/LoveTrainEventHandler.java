@@ -90,18 +90,18 @@ public class LoveTrainEventHandler {
     private static final float WALL_PARTICLE_CHANCE = 0.4f;
 
     // ========== 粒子系统参数 ==========
-    private static final double VERTICAL_SPACING = 2;
+    private static final double VERTICAL_SPACING = 2.3;
     private static final float PARTICLE_LIFETIME = 0.0f;
     private static final int PARTICLE_SPAWN_INTERVAL = 5; // 改为5tick
     private static final int PARTICLE_BATCH_SIZE = 2;
 
     // 光墙参数
-    private static final int LIGHTWALL_COLUMNS = 6;
-    private static final double LIGHTWALL_RADIUS_RATIO = 0.85;
+    private static final int LIGHTWALL_COLUMNS = 4;
+    private static final double LIGHTWALL_RADIUS_RATIO = 0.55;
     private static final double LIGHTWALL_HEIGHT_OFFSET = 0.0; // 从脚底开始
-    private static final double LIGHTWALL_VERTICAL_SPACING = 0.2;
-    private static final double LIGHTWALL_DRIFT = 0.15;
-    private static final float LIGHTWALL_CHANCE = 0.1f;
+    private static final double LIGHTWALL_VERTICAL_SPACING = 2.2;
+    private static final double LIGHTWALL_DRIFT = 0.55;
+    private static final float LIGHTWALL_CHANCE = 0.8f;
 
     // 装饰环参数
     private static final int DECORATIVE_RING_COUNT = 4;
@@ -109,10 +109,10 @@ public class LoveTrainEventHandler {
     private static final double DECORATIVE_RING_HEIGHT_OFFSET = 0.0; // 从脚底开始
     private static final double DECORATIVE_RING_VERTICAL_SPACING = 3.2;
     private static final float DECORATIVE_PARTICLE_CHANCE = 0.5f;
-    private static final float GOLD_BALL_CHANCE = 0.3f;
+    private static final float GOLD_BALL_CHANCE = 0.05f;
 
     // 能量场参数
-    private static final int ENERGY_BALL_COUNT = 2;
+    private static final int ENERGY_BALL_COUNT = 1;
     private static final double ENERGY_BALL_HEIGHT = 2.5;
     private static final float ENERGY_BALL_CHANCE = 0.05f;
 
@@ -144,7 +144,10 @@ public class LoveTrainEventHandler {
                 spawnFullParticleSystem((ServerWorld) event.world, entity, data);
             }
 
-            repelEntities(entity, event.world, data);
+
+            if (event.world.getGameTime() % 5 == 0) {
+                repelEntities(entity, event.world, data);
+            }
         }
     }
 
@@ -206,7 +209,7 @@ public class LoveTrainEventHandler {
             }
 
             if (random.nextFloat() < INNER_RING_ENERGY_BALL_CHANCE) {
-                world.sendParticles(InitParticle.LIGHTBALL.get(),
+                world.sendParticles(InitParticle.GOLDLIGHT.get(),
                         x, center.y + INNER_RING_HEIGHT_OFFSET + 0.5, z,
                         1, 0, 0.1, 0, 0.01);
             }
@@ -332,7 +335,7 @@ public class LoveTrainEventHandler {
                         x,
                         center.y + DECORATIVE_RING_HEIGHT_OFFSET + (random.nextDouble() * 3 - 1.5),
                         z,
-                        2, 0.15, 0.15, 0.15, 0.01);
+                        2, 0.15, 0.15, 0.15, 0.0);
             }
         }
     }
@@ -346,7 +349,7 @@ public class LoveTrainEventHandler {
                         center.x + offsetX,
                         center.y + ENERGY_BALL_HEIGHT,
                         center.z + offsetZ,
-                        1, 0, 0.1, 0, 0.01);
+                        1, 0, 0.1, 0, 0.0);
             }
         }
     }
@@ -363,7 +366,7 @@ public class LoveTrainEventHandler {
 
             world.sendParticles(InitParticle.LIGHTBALL.get(),
                     pos.x, pos.y + 0.5, pos.z,
-                    1, 0, 0.05, 0, 0.01);
+                    1, 0, 0.05, 0, 0.0);
         }
     }
 
