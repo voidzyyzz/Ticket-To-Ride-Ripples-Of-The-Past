@@ -45,12 +45,12 @@ public class LoveTrainEventHandler {
     private static final Map<LivingEntity, LoveTrainData> ACTIVE_EFFECTS = new ConcurrentHashMap<>();
     private static final double BASE_RADIUS = 0.3;
     private static final double MAX_RADIUS = 27.0;
-    private static final double GROWTH_RATE = 0.02;//待会改
-    private static final int BASE_COLUMNS = 5;
-    private static final int MAX_COLUMNS = 400;
+    private static final double GROWTH_RATE = 0.02;
+    private static final int BASE_COLUMNS = 3;
+    private static final int MAX_COLUMNS = 50;
     private static final int WORLD_TOP = 246;
     private static final int WORLD_BOTTOM = 0;
-    private static final double MIN_PILLAR_DISTANCE = 0.6;
+    private static final double MIN_PILLAR_DISTANCE = 1;
 
     // ========== 防御系统参数 ==========
     private static final float DAMAGE_IMMUNITY_CHANCE = 1.0f;
@@ -69,36 +69,36 @@ public class LoveTrainEventHandler {
     private static final double PROJECTILE_CLEAR_RANGE = 15;
 
     // ========== 排斥系统参数 ==========
-    private static final double BASE_REPEL_RADIUS = 3.0;  // 基础排斥半径
-    private static final double REPEL_RADIUS_MULTIPLIER = 1.2; // 排斥半径相对于光壁半径的倍数
-    // 排斥力度
+    private static final double BASE_REPEL_RADIUS = 3.0;
+    private static final double REPEL_RADIUS_MULTIPLIER = 1.2;
     private static final double PUSH_DISTANCE_MULTIPLIER = 1.0;
     private static final double VELOCITY_MULTIPLIER = 0.5;
+
     // ========== 内圈光带系统参数 ==========
-    private static final int INNER_RING_COLUMNS = 7;
+    private static final int INNER_RING_COLUMNS = 4;
     private static final double INNER_RING_RADIUS_RATIO = 1.3;
-    private static final double INNER_RING_HEIGHT_OFFSET = 1.0;
+    private static final double INNER_RING_HEIGHT_OFFSET = 0.0; // 从脚底开始
     private static final double INNER_RING_VERTICAL_SPACING = 3;
     private static final float INNER_RING_PARTICLE_CHANCE = 0.7f;
     private static final float INNER_RING_ENERGY_BALL_CHANCE = 0.01f;
 
     // ========== 装饰墙参数 ==========
-    private static final int DECORATIVE_WALL_COUNT = 6;
+    private static final int DECORATIVE_WALL_COUNT = 4;
     private static final double WALL_RADIUS_RATIO = 0.6;
-    private static final double WALL_HEIGHT_OFFSET = 0.0;
+    private static final double WALL_HEIGHT_OFFSET = 0.0; // 从脚底开始
     private static final double WALL_VERTICAL_SPACING = 3;
     private static final float WALL_PARTICLE_CHANCE = 0.4f;
 
     // ========== 粒子系统参数 ==========
     private static final double VERTICAL_SPACING = 2;
     private static final float PARTICLE_LIFETIME = 0.0f;
-    private static final int PARTICLE_SPAWN_INTERVAL = 2;
-    private static final int PARTICLE_BATCH_SIZE = 1;
+    private static final int PARTICLE_SPAWN_INTERVAL = 5; // 改为5tick
+    private static final int PARTICLE_BATCH_SIZE = 2;
 
     // 光墙参数
-    private static final int LIGHTWALL_COLUMNS = 2;
+    private static final int LIGHTWALL_COLUMNS = 4;
     private static final double LIGHTWALL_RADIUS_RATIO = 0.85;
-    private static final double LIGHTWALL_HEIGHT_OFFSET = 0.5;
+    private static final double LIGHTWALL_HEIGHT_OFFSET = 0.0; // 从脚底开始
     private static final double LIGHTWALL_VERTICAL_SPACING = 3.2;
     private static final double LIGHTWALL_DRIFT = 0.15;
     private static final float LIGHTWALL_CHANCE = 0.05f;
@@ -106,15 +106,15 @@ public class LoveTrainEventHandler {
     // 装饰环参数
     private static final int DECORATIVE_RING_COUNT = 4;
     private static final double DECORATIVE_RING_RADIUS_RATIO = 1.5;
-    private static final double DECORATIVE_RING_HEIGHT_OFFSET = 1.2;
+    private static final double DECORATIVE_RING_HEIGHT_OFFSET = 0.0; // 从脚底开始
     private static final double DECORATIVE_RING_VERTICAL_SPACING = 3.2;
-    private static final float DECORATIVE_PARTICLE_CHANCE = 0.05f;
-    private static final float GOLD_BALL_CHANCE = 0.03f;
+    private static final float DECORATIVE_PARTICLE_CHANCE = 0.5f;
+    private static final float GOLD_BALL_CHANCE = 0.3f;
 
     // 能量场参数
-    private static final int ENERGY_BALL_COUNT = 1;
+    private static final int ENERGY_BALL_COUNT = 2;
     private static final double ENERGY_BALL_HEIGHT = 2.5;
-    private static final float ENERGY_BALL_CHANCE = 0.01f;
+    private static final float ENERGY_BALL_CHANCE = 0.05f;
 
     // ========== 事件处理器 ==========
     @SubscribeEvent
@@ -154,6 +154,9 @@ public class LoveTrainEventHandler {
         Vector3d center = entity.position().add(0, PARTING_SEA_HEIGHT_OFFSET, 0);
         Vector3d rightVec = new Vector3d(-lookVec.z, 0, lookVec.x).normalize();
 
+        int playerY = (int) entity.getY();
+        int minY = playerY - 7;
+        int maxY = playerY + 13;
 
         for (double distance = -currentRadius; distance <= currentRadius; distance += 1.0) {
             Vector3d linePos = center.add(lookVec.scale(distance));
@@ -161,7 +164,7 @@ public class LoveTrainEventHandler {
             for (double widthOffset = -PARTING_SEA_WIDTH / 2.0; widthOffset <= PARTING_SEA_WIDTH / 2.0; widthOffset += 1.0) {
                 Vector3d clearPos = linePos.add(rightVec.scale(widthOffset));
 
-                for (int y = WORLD_BOTTOM; y <= WORLD_TOP; y++) {
+                for (int y = minY; y <= maxY; y++) {
                     BlockPos pos = new BlockPos(clearPos.x, y, clearPos.z);
                     clearLiquidAtPos(world, pos);
                 }
@@ -182,17 +185,14 @@ public class LoveTrainEventHandler {
     // ========== 内圈光带系统 ==========
     private static void spawnInnerLightRing(ServerWorld world, Vector3d center, double radius) {
         double innerRadius = radius * INNER_RING_RADIUS_RATIO;
-
-        // 计算垂直范围（实体上下10格）
-        double minY = center.y - 1;
-        double maxY = center.y +1;
+        double minY = center.y-1;
+        double maxY = center.y;
 
         for (int i = 0; i < INNER_RING_COLUMNS; i++) {
             double angle = 2 * Math.PI * i / INNER_RING_COLUMNS;
             double x = center.x + Math.cos(angle) * innerRadius;
             double z = center.z + Math.sin(angle) * innerRadius;
 
-            // 修改为在实体上下10格范围内生成粒子
             for (double y = minY; y <= maxY; y += INNER_RING_VERTICAL_SPACING) {
                 world.sendParticles(InitParticle.LIGHTWALLP.get(),
                         x, y + INNER_RING_HEIGHT_OFFSET, z,
@@ -202,13 +202,13 @@ public class LoveTrainEventHandler {
             if (random.nextFloat() < INNER_RING_PARTICLE_CHANCE) {
                 world.sendParticles(InitParticle.GOLDLIGHT.get(),
                         x, center.y + INNER_RING_HEIGHT_OFFSET, z,
-                        1, 0, 0.05, 0, PARTICLE_LIFETIME);
+                        1, 0, 0.05, 0, 0.01);
             }
 
             if (random.nextFloat() < INNER_RING_ENERGY_BALL_CHANCE) {
                 world.sendParticles(InitParticle.LIGHTBALL.get(),
                         x, center.y + INNER_RING_HEIGHT_OFFSET + 0.5, z,
-                        1, 0, 0.1, 0, PARTICLE_LIFETIME);
+                        1, 0, 0.1, 0, 0.01);
             }
         }
     }
@@ -219,16 +219,14 @@ public class LoveTrainEventHandler {
         double radius = data.getCurrentRadius();
         int columns = data.getCurrentColumns();
 
-        // 计算垂直范围（实体上下10格）
-        double minY = center.y - 1;
-        double maxY = center.y +1;
+        double minY = center.y-1;
+        double maxY = center.y;
 
         for (int i = 0; i < columns; i += 2) {
             double angle = 2 * Math.PI * i / columns;
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
 
-            // 修改为在实体上下10格范围内生成粒子
             for (double y = minY; y <= maxY; y += VERTICAL_SPACING) {
                 world.sendParticles(InitParticle.LIGHTWALLP.get(),
                         x, y, z,
@@ -241,6 +239,7 @@ public class LoveTrainEventHandler {
         if (world.getGameTime() % 3 == 0) {
             spawnInnerLightRing(world, center, radius);
         }
+        
 
         if (random.nextFloat() < LIGHTWALL_CHANCE) {
             spawnLightWalls(world, center, radius);
@@ -257,17 +256,14 @@ public class LoveTrainEventHandler {
     private static void spawnDecorativeWalls(ServerWorld world, LivingEntity entity, double radius) {
         Vector3d center = entity.position();
         double wallRadius = radius * WALL_RADIUS_RATIO;
-
-        // 计算垂直范围（实体上下10格）
-        double minY = center.y - 1;
-        double maxY = center.y +1;
+        double minY = center.y-1;
+        double maxY = center.y;
 
         for (int i = 0; i < DECORATIVE_WALL_COUNT; i++) {
             double angle = 2 * Math.PI * i / DECORATIVE_WALL_COUNT;
             double x = center.x + Math.cos(angle) * wallRadius;
             double z = center.z + Math.sin(angle) * wallRadius;
 
-            // 修改为在实体上下10格范围内生成粒子
             for (double y = minY; y <= maxY; y += WALL_VERTICAL_SPACING) {
                 if (random.nextFloat() < WALL_PARTICLE_CHANCE) {
                     world.sendParticles(InitParticle.LIGHTWALLP.get(),
@@ -280,16 +276,14 @@ public class LoveTrainEventHandler {
 
     // ========== 光墙系统 ==========
     private static void spawnLightWalls(ServerWorld world, Vector3d center, double radius) {
-        // 计算垂直范围（实体上下10格）
-        double minY = center.y - 1;
-        double maxY = center.y +1;
+        double minY = center.y-1;
+        double maxY = center.y;
 
         for (int i = 0; i < LIGHTWALL_COLUMNS; i++) {
             double angle = 2 * Math.PI * i / LIGHTWALL_COLUMNS;
             double x = center.x + Math.cos(angle) * radius * LIGHTWALL_RADIUS_RATIO;
             double z = center.z + Math.sin(angle) * radius * LIGHTWALL_RADIUS_RATIO;
 
-            // 修改为在实体上下10格范围内生成粒子
             for (double y = minY; y <= maxY; y += LIGHTWALL_VERTICAL_SPACING) {
                 world.sendParticles(InitParticle.LIGHTWALLS.get(),
                         x + (random.nextDouble() - 0.5) * LIGHTWALL_DRIFT,
@@ -303,10 +297,8 @@ public class LoveTrainEventHandler {
     // ========== 装饰外环系统 ==========
     private static void spawnDecorativeOuterRing(ServerWorld world, Vector3d center, double radius) {
         double outerRadius = radius * DECORATIVE_RING_RADIUS_RATIO;
-
-        // 计算垂直范围（实体上下10格）
-        double minY = center.y - 1;
-        double maxY = center.y +1;
+        double minY = center.y-1;
+        double maxY = center.y;
 
         for (int i = 0; i < DECORATIVE_RING_COUNT; i++) {
             double angle = 2 * Math.PI * i / DECORATIVE_RING_COUNT;
@@ -314,7 +306,6 @@ public class LoveTrainEventHandler {
             double x = center.x + Math.cos(angle) * (outerRadius + randomOffset);
             double z = center.z + Math.sin(angle) * (outerRadius + randomOffset);
 
-            // 修改为在实体上下10格范围内生成粒子
             for (double y = minY; y <= maxY; y += DECORATIVE_RING_VERTICAL_SPACING) {
                 if (random.nextFloat() < DECORATIVE_PARTICLE_CHANCE) {
                     world.sendParticles(InitParticle.GOLDLIGHT.get(),
@@ -330,7 +321,7 @@ public class LoveTrainEventHandler {
                         x,
                         center.y + DECORATIVE_RING_HEIGHT_OFFSET + (random.nextDouble() * 3 - 1.5),
                         z,
-                        2, 0.15, 0.15, 0.15, PARTICLE_LIFETIME);
+                        2, 0.15, 0.15, 0.15, 0.01);
             }
         }
     }
@@ -344,11 +335,10 @@ public class LoveTrainEventHandler {
                         center.x + offsetX,
                         center.y + ENERGY_BALL_HEIGHT,
                         center.z + offsetZ,
-                        1, 0, 0.1, 0, PARTICLE_LIFETIME);
+                        1, 0, 0.1, 0, 0.01);
             }
         }
     }
-
 
 
     private static void spawnReflectParticles(ServerWorld world, Vector3d source, Vector3d target) {
@@ -362,7 +352,7 @@ public class LoveTrainEventHandler {
 
             world.sendParticles(InitParticle.LIGHTBALL.get(),
                     pos.x, pos.y + 0.5, pos.z,
-                    1, 0, 0.05, 0, PARTICLE_LIFETIME);
+                    1, 0, 0.05, 0, 0.01);
         }
     }
 
@@ -370,7 +360,7 @@ public class LoveTrainEventHandler {
         // 动态计算排斥半径
         double currentRepelRadius = Math.min(
                 BASE_REPEL_RADIUS + (data.getCurrentRadius() * REPEL_RADIUS_MULTIPLIER),
-                MAX_RADIUS * 1.5
+                MAX_RADIUS
         );
 
         // 获取检测区域
@@ -424,7 +414,7 @@ public class LoveTrainEventHandler {
     }
 
     // ========== 攻击检测与反伤系统 ==========
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingAttack(LivingAttackEvent event) {
         LivingEntity target = event.getEntityLiving();
         DamageSource source = event.getSource();
@@ -507,7 +497,7 @@ public class LoveTrainEventHandler {
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onExplosion(ExplosionEvent.Detonate event) {
         event.getAffectedEntities().removeIf(e -> {
             if (e instanceof LivingEntity) {
@@ -528,7 +518,7 @@ public class LoveTrainEventHandler {
         });
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onKnockback(LivingKnockBackEvent event) {
         LivingEntity entity = event.getEntityLiving();
 
@@ -550,7 +540,7 @@ public class LoveTrainEventHandler {
     }
 
     // ========== 反伤系统 ==========
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingHurt(LivingHurtEvent event) {
         LivingEntity entity = event.getEntityLiving();
         World world = entity.level;
