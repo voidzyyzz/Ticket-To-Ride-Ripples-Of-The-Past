@@ -444,7 +444,7 @@ public class LoveTrainEventHandler {
 
     private static void performRandomCounterAttack(World world, LivingEntity protectedEntity, Entity attacker) {
         // 获取周围生物（排除自己、攻击者、其他受保护实体）
-        AxisAlignedBB area = protectedEntity.getBoundingBox().inflate(20.0);
+        AxisAlignedBB area = protectedEntity.getBoundingBox().inflate(32.0);
         List<LivingEntity> potentialTargets = world.getEntitiesOfClass(LivingEntity.class, area,
                 e -> e.isAlive() &&
                         e != protectedEntity &&
