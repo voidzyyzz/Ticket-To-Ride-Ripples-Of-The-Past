@@ -75,12 +75,12 @@ public class LoveTrainEventHandler {
     private static final double VELOCITY_MULTIPLIER = 0.5;
 
     // ========== 内圈光带系统参数 ==========
-    private static final int INNER_RING_COLUMNS = 4;
+    private static final int INNER_RING_COLUMNS = 3;
     private static final double INNER_RING_RADIUS_RATIO = 1.3;
     private static final double INNER_RING_HEIGHT_OFFSET = 0.0; // 从脚底开始
     private static final double INNER_RING_VERTICAL_SPACING = 3;
-    private static final float INNER_RING_PARTICLE_CHANCE = 0.7f;
-    private static final float INNER_RING_ENERGY_BALL_CHANCE = 0.01f;
+    private static final float INNER_RING_PARTICLE_CHANCE = 0.2f;
+    private static final float INNER_RING_ENERGY_BALL_CHANCE = 0.0f;
 
     // ========== 装饰墙参数 ==========
     private static final int DECORATIVE_WALL_COUNT = 4;
@@ -112,9 +112,9 @@ public class LoveTrainEventHandler {
     private static final float GOLD_BALL_CHANCE = 0.05f;
 
     // 能量场参数
-    private static final int ENERGY_BALL_COUNT = 1;
+    private static final int ENERGY_BALL_COUNT = 0;
     private static final double ENERGY_BALL_HEIGHT = 2.5;
-    private static final float ENERGY_BALL_CHANCE = 0.05f;
+    private static final float ENERGY_BALL_CHANCE = 0.0f;
 
     // ========== 事件处理器 ==========
     @SubscribeEvent
@@ -202,17 +202,6 @@ public class LoveTrainEventHandler {
                         1, 0, 0, 0, PARTICLE_LIFETIME);
             }
 
-            if (random.nextFloat() < INNER_RING_PARTICLE_CHANCE) {
-                world.sendParticles(InitParticle.GOLDLIGHT.get(),
-                        x, center.y + INNER_RING_HEIGHT_OFFSET, z,
-                        1, 0, 0.05, 0, 0.01);
-            }
-
-            if (random.nextFloat() < INNER_RING_ENERGY_BALL_CHANCE) {
-                world.sendParticles(InitParticle.GOLDLIGHT.get(),
-                        x, center.y + INNER_RING_HEIGHT_OFFSET + 0.5, z,
-                        1, 0, 0.1, 0, 0.01);
-            }
         }
     }
 
