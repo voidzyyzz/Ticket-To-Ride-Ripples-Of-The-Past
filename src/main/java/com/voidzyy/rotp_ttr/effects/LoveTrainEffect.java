@@ -20,23 +20,10 @@ public class LoveTrainEffect extends Effect {
 
     @Override
     public void applyEffectTick(LivingEntity livingEntity, int amplifier) {
-        this.clearNegativeEffects(livingEntity);
+        
     }
 
-    private void clearNegativeEffects(LivingEntity livingEntity) {
-        List<Effect> effectsToRemove = new ArrayList<>();
-
-        for (EffectInstance effectInstance : livingEntity.getActiveEffects()) {
-            Effect effect = effectInstance.getEffect();
-            if (effect.getCategory() == EffectType.HARMFUL) {
-                effectsToRemove.add(effect);
-            }
-        }
-
-        for (Effect effect : effectsToRemove) {
-            livingEntity.removeEffect(effect);
-        }
-    }
+    
 
     }
 
