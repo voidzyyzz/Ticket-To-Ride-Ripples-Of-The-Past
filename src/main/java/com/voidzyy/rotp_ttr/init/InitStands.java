@@ -146,9 +146,7 @@ public class InitStands {
                             ITEM_FILL.get(),
                             GIVE_TEARS.get(),
                             CRASH.get(),
-                            ARCHER.get(),
-                            LOVETRAIN.get(),
-                            GIVE.get()
+                            ARCHER.get()
                             )
                     .defaultStats(StandStats.class, new StandStats.Builder()
                             .tier(2)
